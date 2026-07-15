@@ -1,0 +1,108 @@
+@page
+@using MidIAProjeto.Data
+@model MidIAProjeto.Areas.Identity.Pages.Account.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    int listIdToDelete = -1;
+    object cardToDelete = null;
+}
+
+<!DOCTYPE html> 
+
+<html>
+<body>
+<div class="container mt-5">
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Tem certeza?</h1>
+                </div>
+                <div class="modal-body">
+                    Se deletar, não terá como recuperar a lista.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-danger" list-id="@listIdToDelete" id="delete-button"data-bs-dismiss="modal">Deletar</button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    @if (Model.SavedUserLists.Count == 0)
+    {
+        <p>Você não tem nenhuma lista salva, crie uma com o MidIA!</p>
+    }
+    else
+    {
+        <div class="row row-cols-auto row-gap-2 gap-2">
+            @foreach (var list in Model.SavedUserLists)
+            {
+                <div class="col card">
+                    <div class="card-body pb-4" style="overflow: hidden; width: 20rem; height: 20rem;">
+                        <div class="" style="display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                            <p>@list.UserPrompt</p>
+                        </div>
+                        
+                        <hr/>
+
+                        <div class="" style="display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                            <p >@Html.Raw(list.AiResponse)</p>
+                        </div>
+                        <span class="d-flex justify-content-between">
+                            <a asp-page="ListView" asp-route-listid="@list.Id" class="card-link btn btn-primary">Ver lista</a>
+                            <button type="button" class="btn btn-danger" list-id="@list.Id" id="delete-modal-button"data-bs-toggle="modal" data-bs-target="#staticBackdrop">Deletar</button>
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <hr/>
+    <a class="nav-lin btn btn-secondary" asp-area="Identity" asp-page="/Account/Manage/Index" title="Account Settings">Configurar Conta</a>
+</div>
+</body>
+</html>
+
+@section Scripts{
+    <script>
+        document.addEventListener('click', async (e) => {
+            if(e.target.id === "delete-button"){
+                const listId = listIdToDelete;
+
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                
+
+                try {
+                    const response = await fetch('?handler=Delete', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: listId,
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        cardToDelete.remove();
+                    } else
+                    {
+                        alert("Erro ao salvar: " + data.mensagem);
+                    }
+
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+            if(e.target.id === "delete-modal-button"){
+                listIdToDelete = e.target.getAttribute('list-id');
+                cardToDelete = e.target.parentElement.parentElement.parentElement;
+                console.log(listIdToDelete);
+            }
+            
+        });
+    </script>
+}

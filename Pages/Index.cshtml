@@ -1,0 +1,39 @@
+﻿@page
+@model IndexModel
+
+<div class="d-flex flex-column row-gap-3">
+    <div class="text-center">
+        <h1 class="p-3 text-white m-0 display-6 bg-primary bg-gradient w-100 overflow-auto rounded-top">O que é o MídIA?</h1>
+        <div class="d-flex flex-column bg-white pb-2 px-2 border-start border-bottom border-end rounded-bottom">
+            <span class="w-75 align-content-center justify-content-center align-self-center"><p>Este site é feito com o intuito de ajudar pessoas que tem dificuldade em escolher algo para fazer, quando se há muitas opções. <br/>Por exemplo:</p>
+
+                <ul class="d-inline-block text-start">
+                    <li>Biblioteca de jogos grande, mas muitos que você não jogou, e fica sem saber por onde começar.
+                    <li>Recebeu muitas recomendações de filmes para assistir, porém todas as opções parecem boas.</li>
+                    <li>Adora livros, no entanto gosta de vários gêneros, o que deixa muito o que comprar.
+                    <li>Etc.</li>
+                </ul>
+
+                <p>A nossa solução é ajudar você a fazer um "caminho" natural para se seguir nesses várias situações.
+                    Com ajuda de uma IA que possa arquitetar toda uma lista levando em consideração diversas coisas, sobre as obras que forem recomendadas,
+                    se um livro e o próximo tocam em temas parecidos, etc.</p></span>
+            
+            <div class="d-flex flex-column align-content-center justify-content-center align-self-center w-50">
+                <h1 class="p-3 text-white m-0 display-6 bg-primary bg-gradient w-100 overflow-auto rounded-top text-center">Experimente já!</h1>
+                <div class="description-paragraph bg-white py-2 px-2 border-start border-bottom border-end rounded-bottom d-flex align-content-center justify-content-center">
+                    <p class="text-center">Crie uma conta e crie sua primeira lista! <br/>
+                    @if (Model.UserIsLoggedIn)
+                    {
+                        <a asp-page="AiChat" class="btn btn-primary">Converse com MidIA</a>
+                    }
+                    else
+                    {
+                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary">Criar uma Conta</a>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1.7
+
+# Test runner for MidIAProjeto.IntegrationTests.
+# The test project is injected via the named context "testproj" (compose.yaml)
+# so it can stay excluded from the main Dockerfile's build context via .dockerignore.
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+# Main project file first — caches the restore layer.
+COPY ["MidIAProjeto.csproj", "./"]
+
+# Test project file from the named context "testproj".
+COPY --from=testproj ./MidIAProjeto.IntegrationTests.csproj ./MidIAProjeto.IntegrationTests/
+
+# Restore via the test project — it transitively restores the main project.
+RUN dotnet restore "MidIAProjeto.IntegrationTests/MidIAProjeto.IntegrationTests.csproj"
+
+# Rest of the main project source (default context; test project is excluded here).
+COPY . .
+
+# Test project source from the named context.
+COPY --from=testproj . ./MidIAProjeto.IntegrationTests/
+
+RUN dotnet build "MidIAProjeto.IntegrationTests/MidIAProjeto.IntegrationTests.csproj" \
+    -c "Release"\
+    -o /app/tests-build
+
+# ---------- test stage ----------
+FROM build AS test
+WORKDIR /src
+
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_NOLOGO=1 \
+    CI=true \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    ASPNETCORE_ENVIRONMENT=Testing
+
+# Connection string is injected at runtime via compose. The default below
+# matches compose.yaml's POSTGRES_* defaults; override with env vars.
+ENV ConnectionStrings__DefaultConnection="Server=db;Port=5432;Database=${POSTGRES_DB:-MidIADataBase};Username=${POSTGRES_USER:-midia};Password=${POSTGRES_PASSWORD:-midia};Include Error Detail=true"
+
+ENTRYPOINT ["dotnet", "test", \
+    "MidIAProjeto.IntegrationTests/MidIAProjeto.IntegrationTests.csproj", \
+    "-c", "Release", \
+    "--no-restore", \
+    "--logger", "console;verbosity=normal"]

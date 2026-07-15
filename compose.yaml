@@ -1,0 +1,80 @@
+# Compose v2 syntax. Run with:
+#   docker compose up --build          # app + db
+#   docker compose --profile tests run --rm tests   # run the integration tests once
+#
+# Override secrets via a .env file in this directory (see .env.example).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: midia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-midia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-midia}
+      POSTGRES_DB: ${POSTGRES_DB:-MidIADataBase}
+    volumes:
+      - midia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-midia} -d ${POSTGRES_DB:-MidIADataBase}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - midia-net
+
+  app:
+    env_file: ".env"
+    image: midiaprojeto:latest
+    container_name: midia-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      # Connection string is assembled from env vars so secrets stay out of the image.
+      ConnectionStrings__DefaultConnection: Server=db;Port=5432;Database=${POSTGRES_DB:-MidIADataBase};Username=${POSTGRES_USER:-midia};Password=${POSTGRES_PASSWORD:-midia};Include Error Detail=true
+      # Groq API key — required at runtime. Do NOT commit your real key.
+      Groq__ApiKey: ${GROQ_API_KEY:?GROQ_API_KEY must be set (see .env.example)}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - midia-net
+
+  # Opt-in integration test runner. Trigger with:
+  #   docker compose --profile tests run --rm tests
+  tests:
+    env_file: ".env"
+    image: midiaprojeto-tests:latest
+    container_name: midia-tests
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+      additional_contexts:
+        - testproj=./MidIAProjeto.IntegrationTests
+    profiles: ["tests"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Testing
+      ConnectionStrings__DefaultConnection: 
+        Server=db;Port=5432;Database=${POSTGRES_DB:-MidIADataBase};
+        Username=${POSTGRES_USER:-midia};Password=${POSTGRES_PASSWORD:-midia};
+        Include Error Detail=true
+      # Tests should not hit Groq. If they do, stub it here.
+      Groq__ApiKey: ${GROQ_API_KEY:?GROQ_API_KEY must be set (see .env.example)}
+    networks:
+      - midia-net
+
+networks:
+  midia-net:
+    driver: bridge
+
+volumes:
+  midia_pgdata:

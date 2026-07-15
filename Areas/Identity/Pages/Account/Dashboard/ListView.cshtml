@@ -1,0 +1,76 @@
+@page
+@model MidIAProjeto.Areas.Identity.Pages.Account.ListView
+
+@{
+    ViewData["Title"] = "List View";
+}
+
+<!DOCTYPE html>
+
+<html>
+<body>
+<div class="container mt-4">
+    <span class="gap-3 d-flex justify-content-between">
+        <a asp-page="Index"> < Voltar</a> 
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Deletar</button>
+        
+    </span>
+    
+    <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Tem certeza?</h1>
+                </div>
+                <div class="modal-body">
+                    Se deletar, não terá como recuperar a lista.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button id="delete-button" class="btn btn-danger" list-id="@Model.UserList.Id">Deletar</button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <p>@Model.UserList.UserPrompt</p>
+    <hr/>
+
+    <p >@Html.Raw(@Model.UserList.AiResponse)</p>
+</div>
+</body>
+</html>
+
+@section Scripts{
+    <script>
+        document.getElementById('delete-button').addEventListener('click', async (e) => {
+            const listId = e.currentTarget.getAttribute('list-id');
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            try {
+                const response = await fetch('?handler=Delete', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: listId,
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.history.back();
+                } else
+                {
+                    alert("Erro ao salvar: " + data.mensagem);
+                }
+                
+            } catch (err) {
+                console.log(err);
+            }
+        });
+    </script>
+}

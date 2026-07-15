@@ -1,0 +1,37 @@
+# Build artefacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+**/TestResults/
+**/coverage*/
+**/.vs/
+**/.idea/
+**/.vscode/
+**/*.user
+**/*.suo
+**/.git/
+**/.gitignore
+**/.github/
+
+# OS junk
+**/.DS_Store
+**/Thumbs.db
+
+# Local data
+app.db
+*.db
+*.db-shm
+*.db-wal
+
+# Local secrets — never bake them into images
+**/appsettings.*.Local.json
+**/secrets.json
+.env
+.env.*
+!.env.example
+
+
+# Integration tests — only consumed by the "tests" build via additional_contexts.
+MidIAProjeto.IntegrationTests/
+Dockerfile.tests

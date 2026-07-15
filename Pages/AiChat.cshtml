@@ -1,0 +1,190 @@
+@page
+@model MidIAProjeto.Pages.AiChat
+
+@{
+    ViewData["Title"] = "AI Chat";
+}
+
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<div>
+    <div id="chat-history" style="max-height: 75vh; min-height: 75vh" class="overflow-scroll rounded bg-secondary-subtle p-2 mb-2">
+        <div>
+            <p>@Model.AiResponse</p>
+        </div>
+    </div>
+    <form id="chat-form" method="post">
+        <div id="input-group" class="mb-3">
+            <input asp-for="UserInput.Message" id="user-input" class="pb-5 overflow-scroll form-control" placeholder="Pergunte ao MidIA algumas recomendações!"/>
+        </div>
+    </form>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">MidIA</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Salvo com sucesso!
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
+
+@section Scripts
+{
+    <script>
+        const chatForm= document.getElementById("chat-form");
+        const chatHistory= document.getElementById("chat-history");
+        const userInput= document.getElementById("user-input");
+        const saveToast = document.getElementById("saveToast");
+        let formattedReply;
+        
+        chatForm.addEventListener("submit",async function (e) {
+            e.preventDefault();
+            
+            const message = userInput.value;
+            if (!message) return;
+            
+            appendMessage("Você", message, "text-primary text-end")
+            
+            userInput.value = '';
+            
+            const typingId = "typing";
+            appendMessage("MidIA", "Pensando...", "text-secondary", typingId);
+            
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                
+                const formData = new FormData();
+                formData.append("UserInput.Message", message);
+                
+                const response = await fetch('?handler=Chat', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken' : token
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                document.getElementById(typingId).remove();
+                
+                if (data.success) {
+                    formattedReply = data.reply.replace(/\n/g, "<br>");
+                    appendMessage("MidIA", formattedReply, "text-success");
+                } else
+                {
+                    appendMessage("MidIA", "Falha ao gerar recomendação.", "text-danger");
+                }
+            } catch (e)
+            {
+                document.getElementById(typingId).remove();
+                appendMessage("MidIA", "Erro de conexão com o servidor.", "text-danger");
+            } finally {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+            
+        })
+        
+        
+        async function saveEventHandler(e)
+        {
+            const toastBootstrap = bootstrap.Toast.getOrCreateInstance(saveToast)
+            
+            e.preventDefault();
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const formData = new FormData();
+                
+                let listToSave = e.target.previousElementSibling.innerHTML.substring(29, e.target.parentElement.innerHTML.length - 58);
+                console.log(e.target.parentElement.previousElementSibling);
+                let userPrompt = e.target.parentElement.previousElementSibling.querySelector(".user-message").innerHTML.substring(28);
+                console.log(e.target.parentElement.previousElementSibling.querySelector(".user-message"))
+
+                console.log(listToSave);
+                formData.append("UserInput.ListToSave", listToSave);
+                formData.append("UserInput.UserSavePrompt", userPrompt);
+                
+                const response = await fetch('?handler=Save', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken' : token
+                        },
+                        body: formData
+                    });
+                
+                console.log(response);
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log(result.result);
+                    toastBootstrap.show();
+                }
+                else
+                {
+                    console.log("deu merda");
+                }
+
+            } catch (e) {
+                console.log(e.message);
+            }
+        } 
+        
+        
+        chatHistory.addEventListener("click", async function (e)
+            {
+                e.preventDefault();
+                
+                const targetButton = e.target.closest('.save-button');
+
+                if (targetButton) {
+                    await saveEventHandler(e);
+                }
+                    
+            }
+          )
+        
+        function appendMessage(sender, text, colorClass, elementId = null)
+        {
+            const messageParentDiv= document.createElement("div");
+            const messageDiv = document.createElement("div");
+            
+            messageParentDiv.className = "d-flex flex-column";
+            
+            
+            if (elementId) messageParentDiv.id = elementId;
+            if (sender === "MidIA")
+                messageDiv.className = `mb3 ${colorClass} ai-message`;
+            else
+                messageDiv.className = `mb3 ${colorClass} user-message`;
+            
+            messageDiv.innerHTML = `<strong>${sender}:</strong> <br> ${text}`;
+            messageParentDiv.appendChild(messageDiv);
+            
+            if(sender === "MidIA" && elementId !== "typing")
+            {
+                const saveButton = document.createElement("button");
+
+                saveButton.textContent = "Salvar";
+                saveButton.className = `save-button btn btn-primary align-self-start mt-2`;
+                messageParentDiv.appendChild(saveButton);
+            }
+            
+            chatHistory.appendChild(messageParentDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    </script>
+}

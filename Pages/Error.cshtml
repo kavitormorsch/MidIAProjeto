@@ -1,0 +1,17 @@
+﻿@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+@if (TempData.ContainsKey("ErrorHttpCode"))
+{
+    <h1 class="text-danger">@TempData["ErrorHttpCode"]</h1>
+    <h2 class="text-danger">@TempData["ErrorMessage"]</h2>
+}
+else
+{
+    <h1 class="text-danger">Error</h1>
+    <h2 class="text-danger">There was an error processing your request.</h2>
+}
+
